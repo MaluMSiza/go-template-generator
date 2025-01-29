@@ -1,0 +1,3 @@
+module_name: "teste"
+output_dir: "./teste"
+template_repo: "https://github.com/MaluMSiza/grpc-microservice-template.git"
