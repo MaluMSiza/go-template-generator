@@ -8,10 +8,10 @@ import (
 	"strings"
 )
 
-// CloneTemplate baixa o template de um repositório Git
+// CloneTemplate download a template of Git repository
 func CloneTemplate(templateRepo, outputDir string) error {
 	if _, err := os.Stat(outputDir); !os.IsNotExist(err) {
-		return fmt.Errorf("o diretório %s já existe", outputDir)
+		return fmt.Errorf("dir %s already exists", outputDir)
 	}
 
 	cmd := exec.Command("git", "clone", templateRepo, outputDir)
@@ -19,18 +19,18 @@ func CloneTemplate(templateRepo, outputDir string) error {
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("falha ao clonar o repositório: %v", err)
+		return fmt.Errorf("failed to clone the repository: %v", err)
 	}
 
 	if err := os.RemoveAll(filepath.Join(outputDir, ".git")); err != nil {
-		return fmt.Errorf("falha ao remover .git: %v", err)
+		return fmt.Errorf("failed to remove .git: %v", err)
 	}
 
-	fmt.Printf("Template clonado com sucesso em %s\n", outputDir)
+	fmt.Printf("Template cloned with success on %s\n", outputDir)
 	return nil
 }
 
-// ReplacePlaceholders substitui placeholders nos arquivos do template
+// ReplacePlaceholders change placeholders
 func ReplacePlaceholders(outputDir, placeholder, value string) error {
 	return filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -43,13 +43,13 @@ func ReplacePlaceholders(outputDir, placeholder, value string) error {
 
 		content, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("falha ao ler o arquivo %s: %v", path, err)
+			return fmt.Errorf("error to read the file %s: %v", path, err)
 		}
 
 		newContent := strings.ReplaceAll(string(content), placeholder, value)
 
 		if err := os.WriteFile(path, []byte(newContent), info.Mode()); err != nil {
-			return fmt.Errorf("falha ao escrever o arquivo %s: %v", path, err)
+			return fmt.Errorf("error to write the file %s: %v", path, err)
 		}
 
 		return nil

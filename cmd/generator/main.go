@@ -2,76 +2,65 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"log"
 	"os"
 	"os/exec"
 
 	"github.com/MaluMSiza/go-template-generator/internal/generator"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 )
-
-// Config struct para ler as configurações do YAML
-type Config struct {
-	ModuleName   string `yaml:"module_name"`
-	OutputDir    string `yaml:"output_dir"`
-	TemplateRepo string `yaml:"template_repo"`
-}
-
-// Função para ler o arquivo YAML
-func readConfig(filename string) (*Config, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	var config Config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
 
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "generator",
-		Short: "Gerador de templates Go",
+		Short: "Templates generator Go",
 	}
+
+	var (
+		moduleName   string
+		outputDir    string
+		templateRepo string
+	)
 
 	var grpcCmd = &cobra.Command{
-		Use:   "grpc-template [config file]",
-		Short: "Gera um template de microserviço gRPC",
-		Args:  cobra.ExactArgs(1),
+		Use:   "grpc-template",
+		Short: "Template for microservice gRPC",
 		Run: func(cmd *cobra.Command, args []string) {
-			configFile := args[0] // Arquivo de configuração passado como argumento
-			config, err := readConfig(configFile)
-			if err != nil {
-				log.Fatalf("Erro ao ler o arquivo de configuração: %v", err)
+			// Check if dir already exists
+			if _, err := os.Stat(outputDir); !os.IsNotExist(err) {
+				log.Fatalf("O diretório %s já existe", outputDir)
 			}
 
-			// Clona o template no diretório especificado
-			if err := generator.CloneTemplate(config.TemplateRepo, config.OutputDir); err != nil {
-				log.Fatalf("Erro ao gerar o template: %v", err)
+			// Clone template
+			if err := generator.CloneTemplate(templateRepo, outputDir); err != nil {
+				log.Fatalf("Error to generate template: %v", err)
 			}
 
-			// Inicializa um novo módulo Go no diretório de saída
-			if err := os.Chdir(config.OutputDir); err != nil {
-				log.Fatalf("Erro ao mudar para o diretório de saída: %v", err)
+			// Init new Go module on output dir
+			if err := os.Chdir(outputDir); err != nil {
+				log.Fatalf("Erro to change output dir: %v", err)
 			}
-			cmdInit := exec.Command("go", "mod", "init", config.ModuleName)
+			cmdInit := exec.Command("go", "mod", "init", moduleName)
 			if err := cmdInit.Run(); err != nil {
-				log.Fatalf("Erro ao inicializar o módulo Go: %v", err)
+				log.Fatalf("Erro to inialize Go module: %v", err)
 			}
 
-			// Substitui placeholders
-			if err := generator.ReplacePlaceholders(config.OutputDir, "github.com/MaluMSiza/gRPC-microservice-template", config.ModuleName); err != nil {
-				log.Fatalf("Erro ao substituir placeholders: %v", err)
+			// Change placeholders
+			if err := generator.ReplacePlaceholders(outputDir, "github.com/MaluMSiza/gRPC-microservice-template", moduleName); err != nil {
+				log.Fatalf("Error to change placeholders: %v", err)
 			}
 
-			fmt.Println("Template gerado com sucesso!")
+			fmt.Println("Success to generate template!")
 		},
 	}
+
+	// Flags to grpc-template command
+	grpcCmd.Flags().StringVarP(&moduleName, "module", "m", "", "Name of go module (ex: github.com/my-user/my-project)")
+	grpcCmd.Flags().StringVarP(&outputDir, "output", "o", "./my-project-grpc", "Output directory")
+	grpcCmd.Flags().StringVarP(&templateRepo, "repo", "r", "https://github.com/MaluMSiza/gRPC-microservice-template.git", "Template repository")
+
+	// Mark flag --module required
+	grpcCmd.MarkFlagRequired("module")
 
 	rootCmd.AddCommand(grpcCmd)
 
